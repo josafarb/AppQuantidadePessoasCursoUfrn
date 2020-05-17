@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 
 import 'data.dart';
 
@@ -10,6 +13,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _typeAheadController = TextEditingController();
+
+  int _quantidadeDeHomens = 0;
+  int _quantidadeDeMulheres = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +28,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Container(
-          height: 150,
+          height: 170,
           decoration: BoxDecoration(
               image: DecorationImage(
                   image: AssetImage('images/menu.png'), fit: BoxFit.fill)),
@@ -33,7 +39,7 @@ class _HomePageState extends State<HomePage> {
           child: _InputTextCurso(),
         ),
         Padding(
-            padding: EdgeInsets.fromLTRB(0, 70, 0, 80),
+            padding: EdgeInsets.fromLTRB(0, 70, 0, 140),
             child: Row(
               children: <Widget>[_QuantitativoHomem(), _QuantitativoMulher()],
             )),
@@ -43,7 +49,17 @@ class _HomePageState extends State<HomePage> {
             height: 40,
             child: RaisedButton(
               child: Text("Consultar", style: TextStyle(fontSize: 20)),
-              onPressed: () {},
+              onPressed: () {
+                _ConsultarQuantidadePessoas().then((resultado) {
+                  setState(() {
+                    double qtdHomem = resultado['Homens'][0];
+                    _quantidadeDeHomens = qtdHomem.toInt();
+
+                    double qtdMulheres = resultado['Mulheres'][0];
+                    _quantidadeDeMulheres = qtdMulheres.toInt();
+                  });
+                });
+              },
               color: Colors.green,
               textColor: Colors.black,
             ),
@@ -105,7 +121,7 @@ class _HomePageState extends State<HomePage> {
             Text("Quantidade",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black, fontSize: 20.0)),
-            Text("50",
+            Text(_quantidadeDeHomens.toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black, fontSize: 30.0))
           ],
@@ -135,12 +151,26 @@ class _HomePageState extends State<HomePage> {
             Text("Quantidade",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black, fontSize: 20.0)),
-            Text("50",
+            Text(_quantidadeDeMulheres.toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black, fontSize: 30.0))
           ],
         ),
       ),
     );
+  }
+
+  Future<Map> _ConsultarQuantidadePessoas() async {
+    http.Response response;
+
+    String nomeDoCurso = _typeAheadController.text;
+    if (nomeDoCurso != null) {
+      String idCurso = BackendService.cursosComId()[nomeDoCurso];
+      response =
+          await http.get('http://192.168.1.6:8000/api/curso/?idCurso=$idCurso');
+    }
+
+    print(json.decode(response.body));
+    return json.decode(response.body);
   }
 }
